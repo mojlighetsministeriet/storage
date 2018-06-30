@@ -6,12 +6,14 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 
 	uuid "github.com/satori/go.uuid"
 )
 
 type FilesystemCollection struct {
 	Name string
+	mux  sync.Mutex
 }
 
 func (collection FilesystemCollection) createCollectionDirectory() error {
@@ -23,6 +25,9 @@ func (collection FilesystemCollection) GetName() string {
 }
 
 func (collection FilesystemCollection) Persist(entry Entry) (err error) {
+	collection.mux.Lock()
+	defer collection.mux.Unlock()
+
 	if entry.GetID() == uuid.Nil {
 		entry.SetID(uuid.Must(uuid.NewV4()))
 	}
@@ -44,7 +49,11 @@ func (collection FilesystemCollection) Persist(entry Entry) (err error) {
 }
 
 func (collection FilesystemCollection) Delete(entry Entry) (err error) {
+	collection.mux.Lock()
+	defer collection.mux.Unlock()
+
 	filePath := "collections/" + collection.GetName() + "/" + entry.GetID().String() + ".json"
+
 	err = os.Remove(filePath)
 	if err != nil && strings.HasSuffix(err.Error(), "no such file or directory") {
 		err = EntryDoesNotExistError{}
@@ -164,6 +173,9 @@ func (collection FilesystemCollection) passesFilter(filter reflect.Value, entry 
 }
 
 func (collection FilesystemCollection) Load(id uuid.UUID, entry Entry) (err error) {
+	collection.mux.Lock()
+	defer collection.mux.Unlock()
+
 	raw, err := collection.loadRaw(id)
 	if err != nil {
 		return
@@ -178,6 +190,9 @@ func (collection FilesystemCollection) Load(id uuid.UUID, entry Entry) (err erro
 }
 
 func (collection FilesystemCollection) LoadAll(entries interface{}, limit int) (err error) {
+	collection.mux.Lock()
+	defer collection.mux.Unlock()
+
 	ids, err := collection.getIds()
 	if err != nil {
 		return
@@ -214,6 +229,9 @@ func (collection FilesystemCollection) LoadAll(entries interface{}, limit int) (
 }
 
 func (collection FilesystemCollection) Query(filter interface{}, limit int, entries interface{}) (err error) {
+	collection.mux.Lock()
+	defer collection.mux.Unlock()
+
 	ids, err := collection.getIds()
 	if err != nil {
 		return
