@@ -1,6 +1,8 @@
 package remote
 
 import (
+	"errors"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -11,42 +13,47 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+var lastSlashPattern = regexp.MustCompile(`/([^/]+)$`)
+
 type responseID struct {
 	ID uuid.UUID
 }
 
-func NewRemoteCollection(serviceURL string, name string) (collection *RemoteCollection, err error) {
+func NewRemoteCollection(url string) (collection *RemoteCollection, err error) {
 	client, err := httprequest.NewJSONClient()
 	if err != nil {
 		return
 	}
 
+	url = purell.MustNormalizeURLString(url, purell.FlagsSafe|purell.FlagRemoveTrailingSlash)
+	result := lastSlashPattern.FindStringSubmatch(url)
+	if len(result) != 2 {
+		err = errors.New("Unable to extract collection name from " + url)
+		return
+	}
+
 	collection = &RemoteCollection{
-		serviceURL: purell.MustNormalizeURLString(serviceURL, purell.FlagsSafe|purell.FlagRemoveTrailingSlash),
-		name:       name,
-		client:     client,
+		url:    url,
+		name:   result[1],
+		client: client,
 	}
 
 	return
 }
 
 type RemoteCollection struct {
-	serviceURL string
-	name       string
-	client     *httprequest.JSONClient
+	url    string
+	name   string
+	client *httprequest.JSONClient
 }
 
 func (collection RemoteCollection) GetName() string {
 	return collection.name
 }
 
-func (collection RemoteCollection) GetURL() string {
-	return collection.serviceURL + "/" + collection.GetName()
-}
-
 func (collection RemoteCollection) Persist(entry collection.Entry) (err error) {
 	response := responseID{}
-	err = collection.client.Post(collection.GetURL(), entry, &response)
+	err = collection.client.Post(collection.url, entry, &response)
 	if err != nil {
 		return
 	}
@@ -57,17 +64,17 @@ func (collection RemoteCollection) Persist(entry collection.Entry) (err error) {
 }
 
 func (collection RemoteCollection) Delete(entry collection.Entry) (err error) {
-	err = collection.client.Delete(collection.GetURL()+"/"+entry.GetID().String(), nil)
+	err = collection.client.Delete(collection.url+"/"+entry.GetID().String(), nil)
 	return
 }
 
 func (collection RemoteCollection) Load(id uuid.UUID, entry collection.Entry) (err error) {
-	err = collection.client.Get(collection.GetURL()+"/"+id.String(), entry)
+	err = collection.client.Get(collection.url+"/"+id.String(), entry)
 	return
 }
 
 func (collection RemoteCollection) LoadAll(entries interface{}, limit int) (err error) {
-	err = collection.client.Get(collection.GetURL()+"?limit="+strconv.Itoa(limit), &entries)
+	err = collection.client.Get(collection.url+"?limit="+strconv.Itoa(limit), &entries)
 	return
 }
 
@@ -86,6 +93,6 @@ func (collection RemoteCollection) Query(filter interface{}, limit int, entries 
 	}
 
 	queryString := "limit=" + strconv.Itoa(limit) + "&" + filterValues.Encode()
-	err = collection.client.Get(collection.GetURL()+"?"+queryString, &entries)
+	err = collection.client.Get(collection.url+"?"+queryString, &entries)
 	return
 }

@@ -19,7 +19,7 @@ func TestQuery(test *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	remoteCollection, err := remote.NewRemoteCollection("http://localhost:4528", "test-remote-collection-authors-query")
+	remoteCollection, err := remote.NewRemoteCollection("http://localhost:4528/test-remote-collection-authors-query")
 	assert.NoError(test, err)
 
 	name := remoteCollection.GetName()
@@ -80,7 +80,7 @@ func TestLimit(test *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	remoteCollection, err := remote.NewRemoteCollection("http://localhost:4529", "test-remote-collection-authors-limit")
+	remoteCollection, err := remote.NewRemoteCollection("http://localhost:4529/test-remote-collection-authors-limit")
 	assert.NoError(test, err)
 
 	type Author struct {
@@ -135,7 +135,7 @@ func TestFailDeleteWithWrongID(test *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	remoteCollection, err := remote.NewRemoteCollection("http://localhost:4530", "test-remote-collection-authors-fail-delete")
+	remoteCollection, err := remote.NewRemoteCollection("http://localhost:4530/test-remote-collection-authors-fail-delete")
 	assert.NoError(test, err)
 
 	type Author struct {
