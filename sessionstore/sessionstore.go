@@ -15,7 +15,7 @@ type StoredSession struct {
 	Data string
 }
 
-func NewStore(url string, keyPairs ...[]byte) (store *Store, err error) {
+func NewStore(url string, domain string, keyPairs ...[]byte) (store *Store, err error) {
 	collection, err := remote.NewRemoteCollection(url)
 	if err != nil {
 		return
@@ -26,6 +26,7 @@ func NewStore(url string, keyPairs ...[]byte) (store *Store, err error) {
 		Options: &sessions.Options{
 			Path:   "/",
 			MaxAge: 86400 * 30,
+			Domain: domain,
 		},
 		Collection: collection,
 	}
